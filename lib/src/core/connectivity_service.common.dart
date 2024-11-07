@@ -16,8 +16,10 @@ class ConnectivityService extends ConnectivityServiceInterface
     with ConnectivityMixin {
   /// Constructs a singleton instance of [ConnectivityService].
   ConnectivityService() : super() {
-    void update(ConnectivityResult result) async {
-      final status = ConnectivityStatus.values[result.index];
+    void update(List<ConnectivityResult> result) async {
+      final status = result.contains(ConnectivityResult.none) || result.isEmpty
+          ? ConnectivityStatus.none
+          : ConnectivityStatus.other;
       if (connectivityChanged.valueOrNull != status) {
         connectivityChanged.add(status);
       }
@@ -71,8 +73,14 @@ class ConnectivityService extends ConnectivityServiceInterface
   ///
   /// Instead listen for connectivity changes via [onConnectivityChanged] stream.
   @override
-  Future<ConnectivityStatus> checkConnectivity() async => ConnectivityStatus
-      .values[(await _connectivity.checkConnectivity()).index];
+  Future<ConnectivityStatus> checkConnectivity() async {
+    final connectivity = await _connectivity.checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none) || connectivity.isEmpty) {
+      return ConnectivityStatus.none;
+    }
+
+    return ConnectivityStatus.other;
+  }
 
   @override
   void dispose() {
